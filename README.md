@@ -1,10 +1,32 @@
 # auto_arima_chapkit
 
-ML service for auto_arima_chapkit
+An ARIMA model which automatically chooses hyperparameters using the `ARIMA()` function from the fable R package, wrapped as a chapkit ML service.
 
 This project was scaffolded using the [Chapkit](https://dhis2-chap.github.io/chapkit) CLI.
 
 ## Quick Start
+
+### Run from GHCR (no build needed)
+
+```bash
+docker compose -f compose.ghcr.yml up
+```
+
+### Build and run locally
+
+```bash
+docker compose up --build
+```
+
+Or using Make:
+
+```bash
+make run
+```
+
+The API will be available at:
+- API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
 ### Development Mode
 
@@ -15,19 +37,26 @@ uv sync
 uv run python main.py
 ```
 
-The API will be available at http://localhost:8000
+## Project Structure
 
-### Docker
-
-Build and run with Docker Compose:
-
-```bash
-docker compose up --build
 ```
-
-The API will be available at:
-- API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+auto_arima_chapkit/
+├── main.py                    # FastAPI app and model configuration
+├── scripts/                   # R scripts for training and prediction
+│   ├── train.R                # Training script (fable ARIMA)
+│   ├── predict.R              # Prediction script
+│   └── utils.R                # Shared utility functions
+├── example_data/              # Example weekly data (CSV)
+├── example_data_monthly/      # Example monthly data (CSV)
+├── pyproject.toml             # Python dependencies
+├── Dockerfile                 # Docker build configuration
+├── compose.yml                # Docker Compose (local build)
+├── compose.ghcr.yml           # Docker Compose (GHCR image)
+├── Makefile                   # Shortcuts: build, run, run-ghcr
+└── .github/workflows/
+    ├── ci.yml                 # CI: Docker build + chapkit test
+    └── publish-docker.yml     # Publish image to GHCR on push/tag
+```
 
 ## API Endpoints
 
@@ -59,11 +88,7 @@ curl -X POST http://localhost:8000/api/v1/ml/\$train \
   -H "Content-Type: application/json" \
   -d '{
     "config_id": "YOUR_CONFIG_ID",
-    "data": {
-      "feature_1": [1, 2, 3],
-      "feature_2": [4, 5, 6],
-      "target": [7, 8, 9]
-    }
+    "data": { ... }
   }'
 ```
 
@@ -74,84 +99,19 @@ curl -X POST http://localhost:8000/api/v1/ml/\$predict \
   -H "Content-Type: application/json" \
   -d '{
     "model_id": "YOUR_MODEL_ID",
-    "future": {
-      "feature_1": [1, 2],
-      "feature_2": [3, 4]
-    }
+    "future": { ... }
   }'
 ```
 
-## Customization
+## Makefile targets
 
-### Update Model Configuration
-
-Edit the configuration class in `main.py`:
-
-```python
-class AutoArimaChapkitConfig(BaseConfig):
-    # Required: number of prediction periods
-    prediction_periods: int = 3
-    # Add your parameters here
-    min_samples: int = 5
-    learning_rate: float = 0.01
-```
-
-### Customize Training (Shell Runner)
-
-Edit the training script in `scripts/train_model.py` to implement your model training logic.
-
-The script receives the following arguments:
-- `--config`: Path to config YAML file
-- `--data`: Path to training data CSV
-- `--model`: Path to save trained model (pickle format)
-- `--geo`: Optional GeoJSON file path
-
-### Customize Prediction (Shell Runner)
-
-Edit the prediction script in `scripts/predict_model.py` to implement your prediction logic.
-
-The script receives the following arguments:
-- `--config`: Path to config YAML file
-- `--model`: Path to trained model pickle file
-- `--historic`: Path to historic data CSV
-- `--future`: Path to future data CSV
-- `--output`: Path to save predictions CSV
-- `--geo`: Optional GeoJSON file path
-
-### Using Other Languages
-
-The shell runner is language-agnostic! You can replace the Python scripts with:
-- R scripts: `Rscript scripts/train_model.R ...`
-- Julia scripts: `julia scripts/train_model.jl ...`
-- Any executable that accepts the same arguments
-
-Just update the command templates in `main.py`:
-
-```python
-train_command = f"Rscript {SCRIPTS_DIR}/train_model.R --config  ..."
-```
-
-## Project Structure
-
-```
-auto_arima_chapkit/
-├── main.py              # Main application file
-├── scripts/             # External training/prediction scripts
-│   ├── train_model.py   # Training script
-│   └── predict_model.py # Prediction script
-├── pyproject.toml       # Python dependencies
-├── Dockerfile           # Docker build configuration
-├── compose.yml          # Docker Compose configuration
-├── data/                # Database directory
-│   └── chapkit.db       # SQLite database (persisted)
-```
+| Target       | Description                              |
+|--------------|------------------------------------------|
+| `make build` | Build the Docker image locally           |
+| `make run`   | Build and run the image on port 8000     |
+| `make run-ghcr` | Pull and run the prebuilt GHCR image  |
 
 ## Documentation
 
 - [Chapkit Documentation](https://dhis2-chap.github.io/chapkit)
 - [FastAPI Documentation](https://fastapi.tiangolo.com)
-- [Servicekit Documentation](https://winterop-com.github.io/servicekit)
-
-## License
-
-Add your license information here.
